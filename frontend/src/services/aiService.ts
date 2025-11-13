@@ -2,7 +2,7 @@ import type { RoadmapData } from '../types/roadmap';
 
 export const generateRoadmap = async (vacancyUrl: string): Promise<RoadmapData> => {
   // Здесь будет вызов к бэкенду/ИИ
-  const response = await fetch('/api/generate-roadmap', {
+  const response = await fetch('/api/roadmaps', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
