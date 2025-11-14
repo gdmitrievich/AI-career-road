@@ -34,7 +34,6 @@ export interface Project {
 }
 
 export interface RoadmapMetadata {
-  job_title: string;
   job_specialization: string;
   vacancy_url?: string;
 }
