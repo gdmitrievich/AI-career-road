@@ -1,0 +1,52 @@
+name: ai-career-road
+
+x-default-app: &default-app
+  env_file:
+    - ".env"
+  restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+  stop_grace_period: "3s"
+  tty: true
+  healthcheck:
+    interval: "60s"
+    timeout: "3s"
+    start_period: "5s"
+    retries: 3
+  networks:
+    - app-network
+
+services:
+  backend:
+    <<: *default-app
+    build:
+      context: "./backend"
+      dockerfile: Dockerfile.backend
+#      target: ${NODE_ENV}
+#      args:
+#        - "NODE_ENV=${NODE_ENV}"
+    ports:
+      - "${DOCKER_SERVER_PORT_FORWARD}:${SERVER_PORT}"
+#    volumes:
+#      - "./services/backend:/node/app:delegated"
+#      - "/node/app/node_modules"
+
+  frontend:
+    <<: *default-app
+    depends_on:
+     - "backend"
+    build:
+      context: "./frontend"
+#      target: ${NODE_ENV}
+      dockerfile: Dockerfile.frontend
+#      args:
+#        - "NODE_ENV=${NODE_ENV}"
+    ports:
+      - "${DOCKER_CLIENT_PORT_FORWARD}:${CLIENT_PORT}"
+#    healthcheck:
+#      test: "${DOCKER_CLIENT_HEALTHCHECK_TEST}"
+#    volumes:
+#      - "./services/frontend:/node/app:delegated"
+#      - "/node/app/node_modules"
+
+networks:
+  app-network:
+    driver: bridge

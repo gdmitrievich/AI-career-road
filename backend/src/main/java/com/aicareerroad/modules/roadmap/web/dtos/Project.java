@@ -1,13 +1,14 @@
 package com.aicareerroad.modules.roadmap.web.dtos;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public record Project(
-  String projectId,
-  String projectName,
-  String projectDescription,
-  String difficultyLevel,
-  List<String> requiredSkills,
-  List<String> successCriteria
+  @JsonProperty("project_id") String projectId,
+  @JsonProperty("project_name") String projectName,
+  @JsonProperty("project_description") String projectDescription,
+  @JsonProperty("difficulty_level") String difficultyLevel,
+  @JsonProperty("required_skills") List<String> requiredSkills,
+  @JsonProperty("success_criteria") List<String> successCriteria
 ) {
 }

@@ -27,6 +27,7 @@ public class RoadmapController {
       RoadmapResponse roadmap = roadmapModel.generateRoadmap(roadmapGenerateRequest);
       return new ResponseEntity<>(roadmap, HttpStatus.OK);
     } catch (Exception | Error e) {
+      System.out.println("aicareerroad [RoadmapController] Error: " + e.getMessage());
       return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
     }
   }

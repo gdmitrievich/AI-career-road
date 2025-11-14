@@ -7,7 +7,7 @@ export const generateRoadmap = async (vacancyUrl: string): Promise<RoadmapData> 
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ url: vacancyUrl }),
+    body: JSON.stringify({ vacancy_url: vacancyUrl }),
   });
 
   if (!response.ok) {
