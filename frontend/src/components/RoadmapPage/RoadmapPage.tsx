@@ -1,22 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { RoadmapData, MainSkill, SubSkill, Project } from '../../types/roadmap';
+import type { RoadmapData, MainSkill, SubSkill, Project, SavedRoadmap } from '../../types/roadmap';
 import RoadmapNode from './RoadmapNode';
 import SkillModal from './SkillModal';
 import ProjectModal from './ProjectModal';
+import { saveRoadmap } from '../../services/aiService';
+
 
 const RoadmapPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedSkill, setSelectedSkill] = useState<MainSkill | SubSkill | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const roadmapDataFromAI = location.state?.roadmapData;
-  
+  const useMockData = location.state?.useMockData;
 
   // Mock данные от ИИ
   const mockRoadmapData: RoadmapData = {
     roadmap_metadata: {
-      job_title: "Fullstack Developer",
       job_specialization: "Fullstack Web Development",
       vacancy_url: "https://hh.ru/vacancy/123456"
     },
@@ -119,49 +122,7 @@ const RoadmapPage = () => {
               learning_resources: [] 
             }
           ]
-        },
-        {
-          skill_id: "skill_4",
-          skill_name: "Testing & QA",
-          skill_description: "Обеспечение качества и тестирование",
-          position_in_sequence: 4,
-          position_reason: "Неотъемлемая часть профессиональной разработки. Изучается параллельно с основными технологиями для формирования привычки писать тесты.",
-          learning_resources: [],
-          sub_skills: [
-            { 
-              sub_skill_id: "sub_skill_7", 
-              sub_skill_name: "Unit Testing", 
-              sub_skill_description: "Модульное тестирование", 
-              position_in_sequence: 1,
-              position_reason: "Базовый уровень тестирования. Проверяет отдельные компоненты приложения изолированно от остальной системы.",
-              learning_resources: [] 
-            },
-            { 
-              sub_skill_id: "sub_skill_8", 
-              sub_skill_name: "Integration Testing", 
-              sub_skill_description: "Интеграционное тестирование", 
-              position_in_sequence: 2,
-              position_reason: "Проверяет взаимодействие между различными модулями приложения. Следует за модульным тестированием.",
-              learning_resources: [] 
-            },
-            { 
-              sub_skill_id: "sub_skill_9", 
-              sub_skill_name: "E2E Testing", 
-              sub_skill_description: "End-to-end тестирование", 
-              position_in_sequence: 3,
-              position_reason: "Тестирование полного потока приложения от начала до конца. Имитирует поведение реального пользователя.",
-              learning_resources: [] 
-            },
-            { 
-              sub_skill_id: "sub_skill_10", 
-              sub_skill_name: "Test Automation", 
-              sub_skill_description: "Автоматизация тестирования", 
-              position_in_sequence: 4,
-              position_reason: "Автоматизация процессов тестирования для повышения эффективности и покрытия тестами.",
-              learning_resources: [] 
-            }
-          ]
-        },
+        }
       ]
     },
     pet_projects: [
@@ -228,10 +189,103 @@ const RoadmapPage = () => {
     ]
   };
 
-  // Используем данные от AI или mock данные
-  const roadmapData = roadmapDataFromAI || mockRoadmapData;
+  // Загружаем данные при монтировании компонента
+  useEffect(() => {
+    let data;
+    
+    // Если явно запрошены Mock данные или нет данных от AI, используем Mock
+    if (useMockData || !roadmapDataFromAI) {
+      data = mockRoadmapData;
+    } else {
+      data = roadmapDataFromAI;
+      
+      // Сохраняем в localStorage для кнопки возврата только реальные данные от AI
+      const roadmapWithTimestamp = {
+        ...data,
+        generatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('lastRoadmap', JSON.stringify(roadmapWithTimestamp));
+    }
+    
+    setRoadmapData(data);
+  }, [roadmapDataFromAI, useMockData]);
 
-  // Функция для преобразования difficulty_level в старый формат
+  // Функция для сохранения карты
+const handleSaveRoadmap = async () => {
+  if (!roadmapData) return;
+  
+  const user = localStorage.getItem('currentUser');
+  if (!user) {
+    alert('Для сохранения карты необходимо войти в аккаунт');
+    navigate('/login');
+    return;
+  }
+  
+  setSaveStatus('saving');
+  
+  try {
+    // Попытка сохранить через API (если бэкенд доступен)
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const savedRoadmap = await saveRoadmap(roadmapData);
+        
+        setSaveStatus('saved');
+        setTimeout(() => {
+          setSaveStatus('idle');
+        }, 3000);
+        return;
+      }
+    } catch (apiError) {
+      console.log('API недоступен, сохраняем локально:', apiError);
+      // Если API недоступен, продолжаем с localStorage
+    }
+    
+    // Fallback: сохранение в localStorage
+    const savedRoadmapsStr = localStorage.getItem('savedRoadmaps');
+    const savedRoadmaps: SavedRoadmap[] = savedRoadmapsStr ? JSON.parse(savedRoadmapsStr) : [];
+    
+    const savedRoadmap: SavedRoadmap = {
+      ...roadmapData,
+      id: `roadmap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      savedAt: new Date().toISOString(),
+    };
+    
+    const alreadyExists = savedRoadmaps.some(
+      (item: SavedRoadmap) => 
+        item.roadmap_metadata.vacancy_url === savedRoadmap.roadmap_metadata.vacancy_url &&
+        item.roadmap_metadata.job_specialization === savedRoadmap.roadmap_metadata.job_specialization
+    );
+    
+    if (alreadyExists) {
+      alert('Эта карта уже сохранена в вашем профиле');
+      setSaveStatus('idle');
+      return;
+    }
+    
+    savedRoadmaps.unshift(savedRoadmap);
+    localStorage.setItem('savedRoadmaps', JSON.stringify(savedRoadmaps));
+    
+    setSaveStatus('saved');
+    setTimeout(() => {
+      setSaveStatus('idle');
+    }, 3000);
+    
+  } catch (error) {
+    console.error('Ошибка при сохранении карты:', error);
+    setSaveStatus('error');
+    setTimeout(() => {
+      setSaveStatus('idle');
+    }, 3000);
+  }
+};
+
+  // Безопасные проверки на наличие данных
+  const hasSkills = roadmapData?.learning_path?.skills && roadmapData.learning_path.skills.length > 0;
+  const hasProjects = roadmapData?.pet_projects && roadmapData.pet_projects.length > 0;
+  const hasMetadata = roadmapData?.roadmap_metadata?.job_specialization;
+
+  // Функция для преобразования difficulty_level
   const getDifficulty = (level: 'beginner' | 'intermediate' | 'advanced'): 'easy' | 'medium' | 'hard' => {
     switch (level) {
       case 'beginner': return 'easy';
@@ -246,26 +300,26 @@ const RoadmapPage = () => {
     switch (difficulty) {
       case 'easy':
         return {
-          bg: '#96FFA9',
-          text: '#1E8130',
-          label: 'Легкий'
+          bg: '#dcfce7',
+          text: '#166534',
+          label: 'Начинающий'
         };
       case 'medium':
         return {
-          bg: '#FED783',
-          text: '#9F7823',
+          bg: '#fef3c7',
+          text: '#92400e',
           label: 'Средний'
         };
       case 'hard':
         return {
-          bg: '#F77A7A',
-          text: '#8D0303',
-          label: 'Сложный'
+          bg: '#fee2e2',
+          text: '#991b1b',
+          label: 'Продвинутый'
         };
       default:
         return {
-          bg: '#ECECEC',
-          text: '#656565',
+          bg: '#f3f4f6',
+          text: '#6b7280',
           label: 'Неизвестно'
         };
     }
@@ -273,6 +327,7 @@ const RoadmapPage = () => {
 
   // Функция для получения названия навыка по ID
   const getSkillNameById = (skillId: string): string => {
+    if (!roadmapData?.learning_path?.skills) return skillId;
     const skill = roadmapData.learning_path.skills.find((s: MainSkill) => s.skill_id === skillId);
     return skill ? skill.skill_name : skillId;
   };
@@ -298,147 +353,275 @@ const RoadmapPage = () => {
   };
 
   const getRelatedSkills = (): (MainSkill | SubSkill)[] => {
-    if (!selectedSkill) return [];
+    if (!selectedSkill || !roadmapData?.learning_path?.skills) return [];
     
     // Если выбран главный навык, возвращаем все его поднавыки
     if ('sub_skills' in selectedSkill) {
-      return selectedSkill.sub_skills;
+      return selectedSkill.sub_skills || [];
     }
     
     // Если выбран поднавык, находим родительский навык и возвращаем все связанные навыки
     const parentSkill = roadmapData.learning_path.skills.find((mainSkill: MainSkill) =>
-      mainSkill.sub_skills.some((subSkill: SubSkill) => subSkill.sub_skill_id === (selectedSkill as SubSkill).sub_skill_id)
+      mainSkill.sub_skills?.some((subSkill: SubSkill) => subSkill.sub_skill_id === (selectedSkill as SubSkill).sub_skill_id)
     );
     
     if (!parentSkill) return [];
 
-    // Для поднавыка возвращаем: родительский навык + все поднавыки того же родителя
     return [
       parentSkill,
-      ...parentSkill.sub_skills.filter((subSkill: SubSkill) => subSkill.sub_skill_id !== (selectedSkill as SubSkill).sub_skill_id)
+      ...(parentSkill.sub_skills || []).filter((subSkill: SubSkill) => subSkill.sub_skill_id !== (selectedSkill as SubSkill).sub_skill_id)
     ];
   };
 
+  // Если данных нет, показываем минималистичную страницу
+  if (!roadmapData) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container mx-auto px-4 py-8">
+          <button
+            onClick={handleBackToGenerator}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-8"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-lg font-medium">Создать новую карту</span>
+          </button>
+          
+          <div className="text-center py-16">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Не удалось загрузить данные карты
+            </h1>
+            <p className="text-gray-600 mb-8">
+              Пожалуйста, попробуйте создать новую карту навыков
+            </p>
+            <button
+              onClick={handleBackToGenerator}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Создать новую карту
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white p-4 md:p-8">
-      {/* Кнопка возврата */}
-      <button
-        onClick={handleBackToGenerator}
-        className="w-full max-w-[240px] h-12 bg-white border border-black rounded-lg flex items-center justify-center gap-2 mb-6 md:mb-8 hover:bg-gray-50 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-md mx-auto md:mx-0"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 18L9 12L15 6" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        <span className="text-[16px] md:text-[18px] font-medium">Создать новую карту</span>
-      </button>
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Верхняя панель с кнопками */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+        {/* Кнопка возврата */}
+        <button
+          onClick={handleBackToGenerator}
+          className="w-full max-w-60 h-12 bg-white border border-black rounded-lg flex items-center justify-center gap-2 mb-6 md:mb-8 hover:bg-gray-50 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-md mx-auto md:mx-0"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-lg font-medium">Создать новую карту</span>
+        </button>
 
-      {/* Заголовок */}
-      <div className="text-center mb-8">
-        <h1 className="text-[24px] md:text-[32px] font-medium text-black mb-6 md:mb-8">
-          Основываясь на анализе вакансии, <br/> вот рекомендуемый план
-        </h1>
-        
-        {/* Блок с темой */}
-        <div className="w-full max-w-[500px] h-[110px] md:h-[130px] border-[6px] border-black rounded-xl mx-auto mb-8 md:mb-16 flex items-center justify-center bg-gradient-to-br from-white to-gray-50 shadow-2xl relative">
-          <h2 className="text-[28px] md:text-[32px] font-bold text-black text-center px-6">
-            {roadmapData.roadmap_metadata.job_specialization}
-          </h2>
+          {/* Кнопка сохранения */}
+          <div className="relative">
+            <button
+              onClick={handleSaveRoadmap}
+              disabled={saveStatus === 'saving'}
+              className="w-full md:w-auto h-12 px-6 bg-red-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Сохранение...</span>
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Сохранено!</span>
+                </>
+              ) : saveStatus === 'error' ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Ошибка</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  <span>Сохранить карту</span>
+                </>
+              )}
+            </button>
+            
+            {/* Уведомление о сохранении */}
+            {saveStatus === 'saved' && (
+              <div className="absolute top-full mt-2 left-0 right-0 bg-green-50 text-green-800 text-sm px-3 py-2 rounded-lg shadow-md animate-fade-in">
+                Карта успешно сохранена в вашем профиле
+              </div>
+            )}
+            {saveStatus === 'error' && (
+              <div className="absolute top-full mt-2 left-0 right-0 bg-red-50 text-red-800 text-sm px-3 py-2 rounded-lg shadow-md animate-fade-in">
+                Не удалось сохранить карту. Попробуйте снова.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Дорожная карта навыков */}
-      <div className="max-w-7xl mx-auto relative">
-        {/* Непрерывная центральная вертикальная линия */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-400 transform -translate-x-1/2 z-0"></div>
-        
-        {/* Контейнер для всех главных навыков */}
-        <div className="relative z-10">
-          {roadmapData.learning_path.skills.map((mainSkill: MainSkill, index: number) => (
-            <RoadmapNode 
-              key={mainSkill.skill_id}
-              mainSkill={mainSkill}
-              position={index % 2 === 0 ? 'left' : 'right'}
-              isFirst={index === 0}
-              isLast={index === roadmapData.learning_path.skills.length - 1}
-              onSkillClick={handleSkillClick}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Раздел Рекомендуемые проекты */}
-      <div className="max-w-7xl mx-auto mt-48 md:mt-64 lg:mt-80">
-        {/* Заголовок раздела */}
-        <div className="w-[389px] h-[96px] border-[4px] border-black rounded-[6px] mx-auto mb-12 flex flex-col items-center justify-center transition-all duration-500 ease-out">
-          <h2 className="text-[24px] font-medium text-black mb-1">
-            Рекомендуемые проекты
-          </h2>
-          <p className="text-[20px] font-normal text-black">
-            Пет-проекты для освоения профессии
+        {/* Заголовок */}
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Ваш персональный план развития
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Основываясь на анализе вакансии, мы подготовили рекомендации по изучению навыков и практические проекты
           </p>
         </div>
-
-        {/* Сетка проектов */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-[95px] gap-y-[50px] max-w-[1077px] mx-auto">
-          {roadmapData.pet_projects.map((project: Project) => {
-            const difficulty = getDifficulty(project.difficulty_level);
-            const difficultyStyles = getDifficultyStyles(difficulty);
-            
-            return (
-              <div 
-                key={project.project_id}
-                onClick={() => handleProjectClick(project)}
-                className="w-full md:w-[491px] h-[221px] border-[6px] border-[#D9D9D9] rounded-lg p-6 cursor-pointer transition-all duration-500 ease-in-out transform hover:scale-[1.02] hover:shadow-2xl hover:border-gray-400"
-              >
-                {/* Заголовок проекта и сложность */}
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-[24px] font-medium text-black flex-1 pr-4">
-                    {project.project_name}
-                  </h3>
-                  <div 
-                    className="w-[57px] h-6 rounded-[10px] flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110"
-                    style={{ 
-                      backgroundColor: difficultyStyles.bg,
-                      color: difficultyStyles.text
-                    }}
-                  >
-                    <span className="text-[12px] font-normal">
-                      {difficultyStyles.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Описание проекта */}
-                <p className="text-[16px] font-normal text-[#656565] mb-6 line-clamp-2">
-                  {project.project_description}
+        
+        {/* Блок с темой */}
+        {hasMetadata && (
+          <div className="max-w-2xl mx-auto mb-16">
+            <div className="bg-linear-to-r from-red-50 to-pink-50 border border-red-200 rounded-2xl p-8 text-center shadow-sm">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                {roadmapData.roadmap_metadata.job_specialization}
+              </h2>
+              {roadmapData.roadmap_metadata.vacancy_url && (
+                <p className="text-red-600 mt-2">
+                  {roadmapData.roadmap_metadata.vacancy_url}
                 </p>
+              )}
+            </div>
+          </div>
+        )}
 
-                {/* Список требуемых навыков */}
-                <div className="flex flex-wrap gap-2">
-                  {project.required_skills.map((skillId: string, index: number) => {
-                    // Находим название навыка по ID
-                    const skill = roadmapData.learning_path.skills.find((s: MainSkill) => s.skill_id === skillId);
-                    const skillName = skill ? skill.skill_name : skillId;
-                    
-                    return (
-                      <div 
-                        key={index}
-                        className="h-6 bg-[#ECECEC] rounded-[10px] px-3 flex items-center justify-center transition-all duration-300 hover:bg-gray-300 hover:scale-105"
-                      >
-                        <span className="text-[13px] font-normal text-black">
-                          {skillName}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+        {/* Дорожная карта навыков */}
+        {hasSkills && (
+          <div className="mb-20 md:mb-32 lg:mb-48">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                План навыков
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Пошаговый план изучения необходимых технологий и инструментов
+              </p>
+            </div>
+
+            <div className="max-w-7xl mx-auto relative">
+              {/* Центральная линия */}
+              <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-400 transform -translate-x-1/2 z-0"></div>
+              
+              {/* Контейнер для навыков */}
+              <div className="relative z-10">
+                {roadmapData.learning_path.skills.map((mainSkill: MainSkill, index: number) => (
+                  <RoadmapNode 
+                    key={mainSkill.skill_id}
+                    mainSkill={mainSkill}
+                    position={index % 2 === 0 ? 'left' : 'right'}
+                    isFirst={index === 0}
+                    isLast={index === roadmapData.learning_path.skills.length - 1}
+                    onSkillClick={handleSkillClick}
+                  />
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        )}
+
+        {/* Раздел проектов */}
+        {hasProjects && (
+          <div className="max-w-7xl mx-auto mt-32 md:mt-40 lg:mt-48" >
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                Рекомендуемые проекты
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Реальные кейсы для закрепления навыков и пополнения портфолио
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {roadmapData.pet_projects.map((project: Project) => {
+                const difficulty = getDifficulty(project.difficulty_level);
+                const difficultyStyles = getDifficultyStyles(difficulty);
+                
+                return (
+                  <div 
+                    key={project.project_id}
+                    onClick={() => handleProjectClick(project)}
+                    className="bg-white border border-gray-200 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-lg hover:border-gray-300 group"
+                  >
+                    {/* Заголовок и сложность */}
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-semibold text-gray-900 group-hover:text-red-600 transition-colors flex-1 pr-4">
+                        {project.project_name}
+                      </h3>
+                      <div 
+                        className="px-3 py-1 rounded-full text-sm font-medium transition-transform group-hover:scale-105"
+                        style={{ 
+                          backgroundColor: difficultyStyles.bg,
+                          color: difficultyStyles.text
+                        }}
+                      >
+                        {difficultyStyles.label}
+                      </div>
+                    </div>
+
+                    {/* Описание проекта */}
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {project.project_description}
+                    </p>
+
+                    {/* Требуемые навыки */}
+                    <div className="flex flex-wrap gap-2">
+                      {project.required_skills?.map((skillId: string, index: number) => {
+                        const skillName = getSkillNameById(skillId);
+                        return (
+                          <div 
+                            key={index}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm transition-colors group-hover:bg-gray-200"
+                          >
+                            {skillName}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Сообщение если совсем нет данных */}
+        {!hasSkills && !hasProjects && (
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Данные не найдены
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Не удалось сгенерировать карту навыков для данной вакансии
+              </p>
+              <button
+                onClick={handleBackToGenerator}
+                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Попробовать снова
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Модальное окно навыка */}
+      {/* Модальные окна */}
       {selectedSkill && (
         <SkillModal
           skill={selectedSkill}
@@ -448,7 +631,6 @@ const RoadmapPage = () => {
         />
       )}
 
-      {/* Модальное окно проекта */}
       {selectedProject && (
         <ProjectModal
           project={selectedProject}

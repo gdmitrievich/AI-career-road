@@ -1,0 +1,20 @@
+FROM node:20.19.5-alpine
+
+WORKDIR /app
+
+# TODO: it shouldn't be here.
+COPY . .
+# COPY package*.json .
+# COPY vite.config.ts .
+# COPY node_modules ./node_modules
+
+# Install dependencies
+# RUN npm install
+# Check whether there are dependencies or no.
+RUN if [ ! -d "node_modules" ] || [ ! "$(ls -A node_modules)" ]; then npm install; fi
+
+# COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
