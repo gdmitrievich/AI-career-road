@@ -7,44 +7,51 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = localStorage.getItem('currentUser');
-    if (currentUser) {
-      setUser(JSON.parse(currentUser));
-      
-      // Загружаем сохраненные карты из localStorage
-      loadSavedRoadmaps();
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+    loadUserAndRoadmaps();
+  }, []);
 
-const loadSavedRoadmaps = async () => {
-  try {
-    // Попытка загрузить из API
-    const token = localStorage.getItem('token');
-    if (token) {
-      const saved = await getSavedRoadmaps();
-      setSavedRoadmaps(saved);
+  const loadUserAndRoadmaps = async () => {
+    const currentUser = localStorage.getItem('currentUser');
+    
+    if (!currentUser) {
+      navigate('/login');
       return;
     }
-  } catch (apiError) {
-    console.log('API недоступен, загружаем локально:', apiError);
-  }
-  
-  // Fallback: загрузка из localStorage
-  const saved = localStorage.getItem('savedRoadmaps');
-  if (saved) {
+    
     try {
-      const roadmaps = JSON.parse(saved);
-      setSavedRoadmaps(roadmaps);
+      setUser(JSON.parse(currentUser));
+      await loadSavedRoadmaps();
     } catch (error) {
-      console.error('Ошибка при загрузке сохраненных карт:', error);
-      setSavedRoadmaps([]);
+      console.error('Ошибка загрузки данных профиля:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }
-};
+  };
+
+  const loadSavedRoadmaps = async () => {
+    try {
+      const saved = await getSavedRoadmaps();
+      setSavedRoadmaps(saved);
+    } catch (error) {
+      console.log('Загружаем карты из localStorage:', error);
+      // Fallback на localStorage
+      const saved = localStorage.getItem('savedRoadmaps');
+      if (saved) {
+        try {
+          const roadmaps = JSON.parse(saved);
+          setSavedRoadmaps(roadmaps);
+        } catch (parseError) {
+          console.error('Ошибка при загрузке сохраненных карт:', parseError);
+          setSavedRoadmaps([]);
+        }
+      } else {
+        setSavedRoadmaps([]);
+      }
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -79,11 +86,28 @@ const loadSavedRoadmaps = async () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка профиля...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Загрузка...</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Необходима авторизация</h2>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Войти
+          </button>
         </div>
       </div>
     );
@@ -95,6 +119,7 @@ const loadSavedRoadmaps = async () => {
         {/* Заголовок */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Личный кабинет</h1>
+          <p className="text-gray-600 mt-2">Добро пожаловать, {user.name}!</p>
         </div>
 
         {/* Основной контент */}
@@ -110,6 +135,9 @@ const loadSavedRoadmaps = async () => {
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
                 <p className="text-gray-600">{user.email}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Зарегистрирован: {new Date(user.createdAt).toLocaleDateString('ru-RU')}
+                </p>
                 
                 <div className="mt-4 flex flex-wrap gap-4">
                   <button

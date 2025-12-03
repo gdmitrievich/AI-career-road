@@ -75,10 +75,13 @@ const SignUpPage = () => {
       localStorage.setItem('token', response.token);
       localStorage.setItem('currentUser', JSON.stringify(response.user));
       
+      // Показываем сообщение об успешной регистрации
+      alert('Регистрация прошла успешно! Добро пожаловать в AspirePath!');
+      
       navigate('/profile');
     } catch (error: any) {
       console.error('Ошибка регистрации:', error);
-      setApiError(error.message || 'Произошла ошибка при регистрации');
+      setApiError(error.message || 'Произошла ошибка при регистрации. Попробуйте снова.');
     } finally {
       setIsLoading(false);
     }

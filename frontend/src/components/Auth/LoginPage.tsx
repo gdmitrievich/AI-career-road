@@ -31,10 +31,13 @@ const LoginPage = () => {
       localStorage.setItem('token', response.token);
       localStorage.setItem('currentUser', JSON.stringify(response.user));
       
+      // Показываем сообщение об успешном входе
+      alert(`Добро пожаловать, ${response.user.name}!`);
+      
       navigate('/profile');
     } catch (error) {
       console.error('Ошибка входа:', error);
-      setError('Неверный email или пароль');
+      setError('Неверный email или пароль. Проверьте данные или зарегистрируйтесь.');
     } finally {
       setIsLoading(false);
     }
