@@ -5,7 +5,7 @@ interface ProjectModalProps {
   onClose: () => void;
   getDifficulty: (level: 'beginner' | 'intermediate' | 'advanced') => 'easy' | 'medium' | 'hard';
   getDifficultyStyles: (difficulty: 'easy' | 'medium' | 'hard') => { bg: string; text: string; label: string };
-  getSkillName: (skillId: string) => string; // Добавляем новую пропсу
+  getSkillName: (skillId: string) => string;
 }
 
 const ProjectModal = ({ project, onClose, getDifficulty, getDifficultyStyles, getSkillName }: ProjectModalProps) => {
@@ -39,17 +39,17 @@ const ProjectModal = ({ project, onClose, getDifficulty, getDifficultyStyles, ge
 
           {/* Название проекта и сложность */}
           <div className="flex justify-between items-start mb-8">
-            <h2 className="text-[48px] font-normal flex-1 pr-4 transition-all duration-500 ease-out">
+            <h2 className="text-[32px] font-bold flex-1 pr-4 transition-all duration-500 ease-out">
               {project.project_name}
             </h2>
             <div 
-              className="w-[57px] h-[24px] rounded-[10px] flex items-center justify-center flex-shrink-0 mt-2 transition-all duration-300 ease-in-out hover:scale-110"
+              className="px-4 py-2 rounded-full flex items-center justify-center shrink-0 mt-2 transition-all duration-300 ease-in-out hover:scale-105 min-w-[100px]"
               style={{ 
                 backgroundColor: difficultyStyles.bg,
                 color: difficultyStyles.text
               }}
             >
-              <span className="text-[12px] font-normal">
+              <span className="text-[14px] font-medium whitespace-nowrap">
                 {difficultyStyles.label}
               </span>
             </div>
@@ -57,21 +57,21 @@ const ProjectModal = ({ project, onClose, getDifficulty, getDifficultyStyles, ge
 
           {/* Описание проекта */}
           <div className="mb-8 transition-all duration-500 ease-out">
-            <p className="text-[20px] font-normal text-[#656565]">
+            <p className="text-[18px] font-normal text-gray-600 leading-relaxed">
               {project.project_description}
             </p>
           </div>
 
           {/* Критерии успеха */}
           <div className="mb-8 transition-all duration-500 ease-out">
-            <h3 className="text-[24px] font-normal mb-4">
+            <h3 className="text-[24px] font-bold mb-4">
               Требования к проекту
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {project.success_criteria.map((criterion, index) => (
-                <li key={index} className="flex items-start transition-all duration-300 ease-in-out hover:bg-gray-50 hover:rounded-lg hover:px-2 hover:py-1">
-                  <span className="text-[20px] font-normal text-[#656565] mr-2">•</span>
-                  <span className="text-[20px] font-normal text-[#656565] flex-1">
+                <li key={index} className="flex items-start transition-all duration-300 ease-in-out hover:bg-gray-50 hover:rounded-lg hover:px-3 hover:py-2">
+                  <span className="text-[18px] font-normal text-gray-600 mr-3 mt-1">•</span>
+                  <span className="text-[18px] font-normal text-gray-600 flex-1 leading-relaxed">
                     {criterion}
                   </span>
                 </li>
@@ -81,17 +81,17 @@ const ProjectModal = ({ project, onClose, getDifficulty, getDifficultyStyles, ge
 
           {/* Требуемые навыки */}
           <div className="transition-all duration-500 ease-out">
-            <h3 className="text-[24px] font-normal mb-4">
-              Навыки
+            <h3 className="text-[24px] font-bold mb-4">
+              Необходимые навыки
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {project.required_skills.map((skillId, index) => (
                 <div 
                   key={index}
-                  className="h-[24px] bg-[#ECECEC] rounded-[10px] px-3 flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-gray-300 hover:scale-105"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full transition-all duration-300 ease-in-out hover:bg-gray-200 hover:scale-105"
                 >
-                  <span className="text-[13px] font-normal text-black">
-                    {getSkillName(skillId)} {/* Используем переданную функцию */}
+                  <span className="text-[14px] font-medium">
+                    {getSkillName(skillId)}
                   </span>
                 </div>
               ))}

@@ -47,3 +47,20 @@ export interface RoadmapData {
   learning_path: LearningPath;
   pet_projects: Project[];
 }
+
+export interface SavedRoadmap extends RoadmapData {
+  id: string;
+  savedAt: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface UserSession {
+  isLoggedIn: boolean;
+  user: User | null;
+}

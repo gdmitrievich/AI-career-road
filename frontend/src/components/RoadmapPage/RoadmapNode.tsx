@@ -69,7 +69,7 @@ const RoadmapNode = ({ mainSkill, position, isLast, isFirst = false, onSkillClic
                 {/* Блок поднавыка */}
                 <button
                   onClick={() => onSkillClick(subSkill)}
-                  className="w-[280px] md:w-[325px] min-h-[80px] md:min-h-[100px] border-[5px] border-[#D9D9D9] rounded-lg flex flex-col items-center justify-center bg-white shadow-sm relative z-10 transition-all duration-500 ease-in-out transform hover:scale-105 hover:shadow-lg hover:bg-gray-50 p-3"
+                  className="w-[280px] md:w-[325px] min-h-20 md:min-h-[100px] border-[5px] border-[#D9D9D9] rounded-lg flex flex-col items-center justify-center bg-white shadow-sm relative z-10 transition-all duration-500 ease-in-out transform hover:scale-105 hover:shadow-lg hover:bg-gray-50 p-3"
                 >
                   <span className="text-[16px] md:text-[18px] font-medium text-black text-center mb-1">
                     {subSkill.sub_skill_name}
@@ -111,7 +111,7 @@ const RoadmapNode = ({ mainSkill, position, isLast, isFirst = false, onSkillClic
                 {/* Блок поднавыка */}
                 <button
                   onClick={() => onSkillClick(subSkill)}
-                  className="w-[280px] md:w-[325px] min-h-[80px] md:min-h-[100px] border-[5px] border-[#D9D9D9] rounded-lg flex flex-col items-center justify-center bg-white shadow-sm relative z-10 transition-all duration-500 ease-in-out transform hover:scale-105 hover:shadow-lg hover:bg-gray-50 p-3"
+                  className="w-[280px] md:w-[325px] min-h-20 md:min-h-[100px] border-[5px] border-[#D9D9D9] rounded-lg flex flex-col items-center justify-center bg-white shadow-sm relative z-10 transition-all duration-500 ease-in-out transform hover:scale-105 hover:shadow-lg hover:bg-gray-50 p-3"
                 >
                   <span className="text-[16px] md:text-[18px] font-medium text-black text-center mb-1">
                     {subSkill.sub_skill_name}

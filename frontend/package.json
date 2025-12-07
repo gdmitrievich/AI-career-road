@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:docker": "docker build -f Dockerfile.frontend -t aspirepath-frontend:latest .",
+    "dev:docker": "docker-compose up --build",
+    "start": "vite preview --host 0.0.0.0 --port 5173"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.16",
