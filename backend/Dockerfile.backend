@@ -1,0 +1,18 @@
+# Eclipse Temurin — it's an official OpenJDK build from the Eclipse Foundation.
+FROM maven:3.9.11-eclipse-temurin-21-noble AS build
+
+WORKDIR app/
+
+COPY pom.xml .
+RUN mvn dependency:go-offline -Dmaven.wagon.http.retryHandler.count=3 || \
+    mvn dependency:go-offline -Dmaven.wagon.http.retryHandler.count=3
+
+ARG API_KEY
+ENV API_KEY=${API_KEY}
+
+COPY . .
+RUN mvn clean install
+
+EXPOSE 8080
+
+ENTRYPOINT ["mvn", "spring-boot:run"]
