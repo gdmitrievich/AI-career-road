@@ -20,11 +20,11 @@ const SkillMapGenerator = () => {
     }
 
     // Базовая валидация URL
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
-    if (!urlPattern.test(vacancyUrl)) {
-      setError('Пожалуйста, введите корректную ссылку');
-      return;
-    }
+//     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+//     if (!urlPattern.test(vacancyUrl)) {
+//       setError('Пожалуйста, введите корректную ссылку');
+//       return;
+//     }
 
     setIsLoading(true);
     setError(null);

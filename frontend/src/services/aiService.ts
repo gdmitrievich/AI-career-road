@@ -53,7 +53,7 @@ export const generateRoadmap = async (vacancyUrl: string): Promise<RoadmapData> 
       throw new Error('Бэкенд недоступен');
     }
     
-    const response = await fetch(`${API_BASE_URL}/roadmaps/generate`, {
+    const response = await fetch(`${API_BASE_URL}/roadmaps`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

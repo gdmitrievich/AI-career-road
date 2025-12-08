@@ -1,7 +1,9 @@
 package com.aicareerroad.modules.roadmap.web.dtos;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record RoadmapMetadata(
-  String jobSpecialization,
-  String vacancyUrl
+  @JsonProperty("job_specialization") String jobSpecialization,
+  @JsonProperty("vacancy_url") String vacancyUrl
 ) {
 }

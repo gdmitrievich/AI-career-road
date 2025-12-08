@@ -22,7 +22,60 @@
       <groupId>org.springframework.boot</groupId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <artifactId>commons-validator</artifactId>
+      <groupId>commons-validator</groupId>
+      <version>1.10.0</version>
+    </dependency>
+
+    <dependency>
+      <artifactId>jsoup</artifactId>
+      <groupId>org.jsoup</groupId>
+      <version>1.21.2</version>
+    </dependency>
+    <dependency>
+      <artifactId>spring-ai-client-chat</artifactId>
+      <groupId>org.springframework.ai</groupId>
+    </dependency>
+    <dependency>
+      <artifactId>gigachat-java</artifactId>
+      <groupId>chat.giga</groupId>
+      <version>0.1.10</version>
+    </dependency>
+    <dependency>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+      <groupId>org.springframework.boot</groupId>
+    </dependency>
+    <dependency>
+      <artifactId>postgresql</artifactId>
+      <groupId>org.postgresql</groupId>
+      <scope>runtime</scope>
+      <version>42.6.0</version>
+    </dependency>
+    <!--    <dependency>-->
+    <!--      <artifactId>flyway-core</artifactId>-->
+    <!--      <groupId>org.flywaydb</groupId>-->
+    <!--    </dependency>-->
+    <dependency>
+      <artifactId>lombok</artifactId>
+      <groupId>org.projectlombok</groupId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <artifactId>spring-ai-bom</artifactId>
+        <groupId>org.springframework.ai</groupId>
+        <scope>import</scope>
+        <type>pom</type>
+        <version>1.0.0</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <description>A web application for creating an individual skill development plan based on an
     analysis of job requirements
   </description>
@@ -44,6 +97,29 @@
   <properties>
     <java.version>21</java.version>
   </properties>
+
+  <repositories>
+    <repository>
+      <id>spring-snapshots</id>
+      <name>Spring Snapshots</name>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <url>https://repo.spring.io/snapshot</url>
+    </repository>
+    <repository>
+      <id>central-portal-snapshots</id>
+      <name>Central Portal Snapshots</name>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    </repository>
+  </repositories>
+
   <scm>
     <connection/>
     <developerConnection/>

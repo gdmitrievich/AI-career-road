@@ -4,6 +4,6 @@ public record LearningResource(
   String id,
   String name,
   String url,
-  String type
+  LearningResourceType type
 ) {
 }
