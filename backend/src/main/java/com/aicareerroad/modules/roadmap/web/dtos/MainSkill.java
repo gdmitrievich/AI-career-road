@@ -1,7 +1,11 @@
 package com.aicareerroad.modules.roadmap.web.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record MainSkill(
   @JsonProperty("skill_id") String skillId,
@@ -12,4 +16,17 @@ public record MainSkill(
   @JsonProperty("learning_resources") List<LearningResource> learningResources,
   @JsonProperty("sub_skills") List<SubSkill> subSkills
 ) {
+  private static final Logger logger = LoggerFactory.getLogger(MainSkill.class);
+
+  public MainSkill {
+    skillId = (skillId == null) ? UUID.randomUUID().toString() : skillId;
+    skillName = (skillName == null) ? "" : skillName;
+    skillDescription = (skillDescription == null) ? "" : skillDescription;
+    positionReason = (positionReason == null) ? "" : positionReason;
+
+    learningResources = (learningResources == null) ? new ArrayList<>() : learningResources;
+    subSkills = (subSkills == null) ? new ArrayList<>() : subSkills;
+
+    logger.debug("All fields initialized successfully");
+  }
 }

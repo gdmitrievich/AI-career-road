@@ -1,6 +1,4 @@
 import type { RoadmapData, SavedRoadmap, User } from '../types/roadmap';
-
-// Импортируем локальные функции аутентификации
 import {
   localRegister,
   localLogin,
@@ -8,10 +6,8 @@ import {
   localGetCurrentUser
 } from './localAuthService';
 
-// Будет использоваться прокси, настроенный в vite.config.ts
 const API_BASE_URL = '/api';
 
-// Функция для обработки ошибок API
 const handleApiError = async (response: Response) => {
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
@@ -26,33 +22,33 @@ const handleApiError = async (response: Response) => {
   return response;
 };
 
-// Проверка доступности бэкенда
-const isBackendAvailable = async (): Promise<boolean> => {
+// НОВАЯ ФУНКЦИЯ: проверка доступности бэкенда только для генерации
+const isBackendAvailableForGeneration = async (): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
-      // Добавляем таймаут, чтобы быстро определить, что бэкенд недоступен
-      signal: AbortSignal.timeout(3000)
+      // Уменьшаем таймаут для более быстрой проверки
+      signal: AbortSignal.timeout(2000)
     });
     return response.ok;
   } catch (error) {
-    console.log('Бэкенд недоступен, используем локальные данные');
+    console.log('Бэкенд недоступен для генерации роадмапа');
     return false;
   }
 };
 
+// ФУНКЦИЯ GENERATE ТОЛЬКО С БЭКЕНДОМ
 export const generateRoadmap = async (vacancyUrl: string): Promise<RoadmapData> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
+    const backendAvailable = await isBackendAvailableForGeneration();
+
     if (!backendAvailable) {
-      // Если бэкенд недоступен, пробрасываем ошибку, чтобы показать кнопку Mock
-      throw new Error('Бэкенд недоступен');
+      throw new Error('Бэкенд недоступен для генерации роадмапа');
     }
-    
+
     const response = await fetch(`${API_BASE_URL}/roadmaps`, {
       method: 'POST',
       headers: {
@@ -65,212 +61,106 @@ export const generateRoadmap = async (vacancyUrl: string): Promise<RoadmapData> 
     return await response.json();
   } catch (error) {
     console.error('Ошибка при генерации дорожной карты:', error);
-    throw error;
+    throw error; // Пробрасываем ошибку дальше
   }
 };
 
-// Функция для сохранения карты
+// ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ - ТОЛЬКО ЛОКАЛЬНЫЕ
+
+// Функция для сохранения карты (ТОЛЬКО ЛОКАЛЬНО)
 export const saveRoadmap = async (roadmap: RoadmapData): Promise<SavedRoadmap> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/roadmaps/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify(roadmap),
-      });
-
-      await handleApiError(response);
-      return await response.json();
-    } else {
-      // Локальное сохранение
-      throw new Error('Используем локальное сохранение');
-    }
-  } catch (error) {
-    // Локальное сохранение в localStorage
+    // Всегда используем локальное сохранение
     const savedRoadmapsStr = localStorage.getItem('savedRoadmaps');
     const savedRoadmaps: SavedRoadmap[] = savedRoadmapsStr ? JSON.parse(savedRoadmapsStr) : [];
-    
+
     const savedRoadmap: SavedRoadmap = {
       ...roadmap,
       id: `roadmap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       savedAt: new Date().toISOString(),
     };
-    
+
     savedRoadmaps.unshift(savedRoadmap);
     localStorage.setItem('savedRoadmaps', JSON.stringify(savedRoadmaps));
-    
+
     return savedRoadmap;
+  } catch (error) {
+    console.error('Ошибка при локальном сохранении роадмапа:', error);
+    throw error;
   }
 };
 
-// Функция для получения сохраненных карт пользователя
+// Функция для получения сохраненных карт (ТОЛЬКО ЛОКАЛЬНО)
 export const getSavedRoadmaps = async (): Promise<SavedRoadmap[]> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/roadmaps/saved`, {
-        method: 'GET',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      await handleApiError(response);
-      return await response.json();
-    } else {
-      // Локальная загрузка
-      throw new Error('Используем локальные данные');
-    }
-  } catch (error) {
-    // Локальная загрузка из localStorage
     const savedRoadmapsStr = localStorage.getItem('savedRoadmaps');
     return savedRoadmapsStr ? JSON.parse(savedRoadmapsStr) : [];
+  } catch (error) {
+    console.error('Ошибка при получении локальных роадмапов:', error);
+    return [];
   }
 };
 
-// Функция для удаления сохраненной карты
+// Функция для удаления сохраненной карты (ТОЛЬКО ЛОКАЛЬНО)
 export const deleteRoadmap = async (roadmapId: string): Promise<void> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/roadmaps/${roadmapId}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      await handleApiError(response);
-    } else {
-      // Локальное удаление
-      throw new Error('Используем локальное удаление');
-    }
-  } catch (error) {
-    // Локальное удаление из localStorage
     const savedRoadmapsStr = localStorage.getItem('savedRoadmaps');
     if (savedRoadmapsStr) {
       const savedRoadmaps: SavedRoadmap[] = JSON.parse(savedRoadmapsStr);
       const updatedRoadmaps = savedRoadmaps.filter(roadmap => roadmap.id !== roadmapId);
       localStorage.setItem('savedRoadmaps', JSON.stringify(updatedRoadmaps));
     }
+  } catch (error) {
+    console.error('Ошибка при локальном удалении роадмапа:', error);
+    throw error;
   }
 };
 
-// Функция для регистрации пользователя
+// Функция для регистрации пользователя (ТОЛЬКО ЛОКАЛЬНО)
 export const registerUser = async (userData: { name: string; email: string; password: string }): Promise<{ token: string; user: User }> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      await handleApiError(response);
-      return await response.json();
-    } else {
-      // Локальная регистрация
-      throw new Error('Используем локальную регистрацию');
-    }
-  } catch (error) {
-    // Используем локальную регистрацию
     return await localRegister(userData);
+  } catch (error) {
+    console.error('Ошибка при локальной регистрации:', error);
+    throw error;
   }
 };
 
-// Функция для входа пользователя
+// Функция для входа пользователя (ТОЛЬКО ЛОКАЛЬНО)
 export const loginUser = async (credentials: { email: string; password: string }): Promise<{ token: string; user: User }> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      await handleApiError(response);
-      return await response.json();
-    } else {
-      // Локальный вход
-      throw new Error('Используем локальный вход');
-    }
-  } catch (error) {
-    // Используем локальный вход
     return await localLogin(credentials);
+  } catch (error) {
+    console.error('Ошибка при локальном входе:', error);
+    throw error;
   }
 };
 
-// Функция для выхода пользователя
+// Функция для выхода пользователя (ТОЛЬКО ЛОКАЛЬНО)
 export const logoutUser = async (): Promise<void> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-    }
-  } catch (error) {
-    console.log('Бэкенд недоступен, выполняем локальный выход');
-  } finally {
-    // Всегда выполняем локальный выход
     await localLogout();
+  } catch (error) {
+    console.error('Ошибка при локальном выходе:', error);
+    throw error;
   }
 };
 
-// Функция для получения данных текущего пользователя
+// Функция для получения данных текущего пользователя (ТОЛЬКО ЛОКАЛЬНО)
 export const getCurrentUser = async (): Promise<User> => {
   try {
-    const backendAvailable = await isBackendAvailable();
-    
-    if (backendAvailable) {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        method: 'GET',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      await handleApiError(response);
-      return await response.json();
-    } else {
-      // Локальное получение пользователя
-      throw new Error('Используем локальные данные');
-    }
-  } catch (error) {
-    // Локальное получение пользователя
     const user = await localGetCurrentUser();
     if (!user) {
       throw new Error('Пользователь не авторизован');
     }
     return user;
+  } catch (error) {
+    console.error('Ошибка при получении текущего пользователя:', error);
+    throw error;
   }
 };
 
-// Функция для проверки доступности API
-export const checkApiHealth = async (): Promise<boolean> => {
-  return await isBackendAvailable();
+// Опционально: функция для проверки доступности API для генерации
+export const canGenerateRoadmap = async (): Promise<boolean> => {
+  return await isBackendAvailableForGeneration();
 };

@@ -8,9 +8,9 @@ import com.aicareerroad.modules.roadmap.web.requiredinterfaces.RoadmapModel;
 
 public class RoadmapModelFacade implements RoadmapModel {
   private final RoadmapService roadmapService;
-  private final JsonDtoConverterService jsonDtoConverterService;
+  private final JsonDtoConverterService<RoadmapResponse> jsonDtoConverterService;
 
-  public RoadmapModelFacade(RoadmapService roadmapService, JsonDtoConverterService jsonDtoConverterService) {
+  public RoadmapModelFacade(RoadmapService roadmapService, JsonDtoConverterService<RoadmapResponse> jsonDtoConverterService) {
     this.roadmapService = roadmapService;
     this.jsonDtoConverterService = jsonDtoConverterService;
   }
@@ -18,6 +18,7 @@ public class RoadmapModelFacade implements RoadmapModel {
   @Override
   public RoadmapResponse generateRoadmap(RoadmapGenerateRequest roadmapGenerateRequest) {
     String roadmap = roadmapService.generateRoadmap(roadmapGenerateRequest.vacancyUrl());
-    return (RoadmapResponse) jsonDtoConverterService.convert(roadmap);
+    RoadmapResponse roadmapResponse = jsonDtoConverterService.convert(roadmap);
+    return roadmapResponse;
   }
 }

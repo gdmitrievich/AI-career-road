@@ -1,7 +1,6 @@
 package com.aicareerroad;
 
 import com.aicareerroad.modules.roadmap.domain.RoadmapModelFacade;
-import com.aicareerroad.modules.roadmap.domain.repositories.RoadmapRepository;
 import com.aicareerroad.modules.roadmap.domain.services.AiRoadmapGeneratorService;
 import com.aicareerroad.modules.roadmap.domain.services.AiService;
 import com.aicareerroad.modules.roadmap.domain.services.JsonDtoConverterService;
@@ -52,9 +51,8 @@ public class AiCareerRoadContextConfiguration {
   }
 
   @Bean
-  public RoadmapService roadmapService(RoadmapGeneratorService roadmapGeneratorService,
-                                       RoadmapRepository roadmapRepository) {
-    return new RoadmapService(roadmapGeneratorService, roadmapRepository);
+  public RoadmapService roadmapService(RoadmapGeneratorService roadmapGeneratorService) {
+    return new RoadmapService(roadmapGeneratorService);
   }
 
   @Bean
@@ -63,7 +61,7 @@ public class AiCareerRoadContextConfiguration {
   }
 
   @Bean
-  public RoadmapModel roadmapModel(RoadmapService roadmapService, JsonDtoConverterService jsonDtoConverterService) {
-    return new RoadmapModelFacade(roadmapService, jsonDtoConverterService);
+  public RoadmapModel roadmapModel() {
+    return new RoadmapModelFacade(roadmapService(roadmapGeneratorService()), jsonDtoConverterService());
   }
 }

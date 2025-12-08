@@ -15,38 +15,62 @@ x-default-app: &default-app
     - app-network
 
 services:
+#  db:
+#    container_name: db
+#    image: postgres:15-alpine
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: roadmap_db
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: postgres
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready"]
+#      interval: 30s
+#      timeout: 60s
+#      retries: 5
+#      start_period: 80s
+#    expose:
+#      - 5432
+#    ports:
+#      - "5432:5432"
+#    networks:
+#      app-network:
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+
   backend:
     <<: *default-app
+    container_name: backend
+#    depends_on:
+#      db:
+#        condition: service_healthy
     build:
       context: "./backend"
       dockerfile: Dockerfile.backend
-#      target: ${NODE_ENV}
-#      args:
-#        - "NODE_ENV=${NODE_ENV}"
+#    environment:
+#      - spring.profiles.active=dev
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/roadmap_db
+#      - SPRING_DATASOURCE_USERNAME=postgres
+#      - SPRING_DATASOURCE_PASSWORD=postgres
+#      - DB_DDL_AUTO=update
+#      - DB_SHOW_SQL=true
+#      - DB_DIALECT=org.hibernate.dialect.PostgreSQLDialect
     ports:
       - "${DOCKER_SERVER_PORT_FORWARD}:${SERVER_PORT}"
-#    volumes:
-#      - "./services/backend:/node/app:delegated"
-#      - "/node/app/node_modules"
 
   frontend:
     <<: *default-app
     depends_on:
-     - "backend"
+     - backend
     build:
       context: "./frontend"
-#      target: ${NODE_ENV}
       dockerfile: Dockerfile.frontend
-#      args:
-#        - "NODE_ENV=${NODE_ENV}"
     ports:
       - "${DOCKER_CLIENT_PORT_FORWARD}:${CLIENT_PORT}"
-#    healthcheck:
-#      test: "${DOCKER_CLIENT_HEALTHCHECK_TEST}"
-#    volumes:
-#      - "./services/frontend:/node/app:delegated"
-#      - "/node/app/node_modules"
 
 networks:
   app-network:
     driver: bridge
+
+#volumes:
+#  postgres_data:
